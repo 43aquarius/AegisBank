@@ -162,6 +162,28 @@ export function planDag(intentResult: IntentResult): DagPlan {
     if (nodes) return { goal: intentResult.utterance, nodes };
   }
 
+  // cross.custom_plan 缺 when/action 槽位时的兜底（防 zod 拒绝导致整任务失败）：
+  // 含生日/人物/预算信号 → 改走生日规划模板；否则以归一化诉求原文登记联动计划
+  if (intent === "cross.custom_plan" && (slots.when === undefined || slots.action === undefined)) {
+    const birthdaySignals =
+      slots.person !== undefined || slots.budget !== undefined || /生日|礼物|鲜花|蛋糕/.test(intentResult.utterance);
+    if (birthdaySignals) {
+      return planDag({
+        ...intentResult,
+        intent: "cross.birthday_plan",
+        compound: false,
+        slots: { ...slots, budget: slots.budget ?? 1000 },
+      });
+    }
+    const text = String(intentResult.utterance || "用户联动计划").slice(0, 60);
+    return {
+      goal: intentResult.utterance,
+      nodes: [
+        { id: "n1", action: "cross.customPlan", label: "创建联动计划", params: { when: text, action: text }, dependsOn: [], status: "PENDING" },
+      ],
+    };
+  }
+
   // 简单映射
   const simple = SIMPLE_TOOL_MAP[intent];
   if (simple) {

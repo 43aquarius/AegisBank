@@ -30,7 +30,7 @@ const SYSTEM_PROMPT = `你是 AegisBank 银行 AI 智能体的意图识别引擎
 - finance.recommend: 理财产品推荐 | finance.compare: 产品对比 | finance.risk_assess: 风险测评 | finance.purchase: 理财申购 | finance.redeem: 理财赎回 | finance.portfolio: 持仓/收益查询
 - card.apply: 申请卡片(虚拟卡) | card.adjust_limit: 调整限额/额度 | card.toggle_restriction: 开关线上/境外交易 | card.report_lost: 挂失/解挂 | card.status: 卡片状态
 - sub.detect: 识别订阅/代扣 | sub.remind: 续费提醒 | sub.cancel: 取消订阅 | sub.list: 订阅清单
-- cross.birthday_plan: 生日规划类(锁定资金+订购鲜花蛋糕等联动) | cross.custom_plan: 其他自定义联动计划
+- cross.birthday_plan: 生日规划类(生日+预留/锁定资金+订购鲜花蛋糕礼物等联动，如「下周三我爱人生日，帮我预留1000买礼物」) | cross.custom_plan: 其他自定义联动计划(仅当能明确提取 when 触发条件与 action 动作时才选，否则优先 birthday_plan 或拆解到具体意图)
 - sys.security_center: 查看安全中心/审计日志 | sys.interrupt: 打断/取消当前任务 | sys.task_status: 任务进度
 
 【槽位提取规则】
@@ -41,13 +41,14 @@ const SYSTEM_PROMPT = `你是 AegisBank 银行 AI 智能体的意图识别引擎
 - period: "month"|"year"
 - merchant: 商户/订阅名
 - person: 生日规划的祝福对象; budget: 锁定预算
+- when/action: cross.custom_plan 的触发条件与动作描述（两者缺一时不要选 custom_plan）
 - cardLabel: 卡片标签(主力卡/虚拟卡)
 - compareItems: 对比的产品名数组
 - op: 挂失为"lost"，解挂为"unlost"
 - horizon: 投资期限描述
 
 【关键判定】
-1. 复合任务(一句话多个诉求，如"查下余额然后把500转给妈妈") → compound=true，slots.tasks 列出每个子诉求
+1. 复合任务(一句话多个诉求，如"查下余额然后把500转给妈妈") → compound=true，slots.tasks 列出每个子诉求。注意："下周三我爱人生日帮我预留1000买礼物，剩下的闲钱做个稳健理财"这类「生日安排+资金安排」也是复合任务，应拆为 cross.birthday_plan(预留礼物资金) 与 finance.recommend(剩余资金理财建议) 两个子任务
 2. 隐含意图：如"这个月花了多少"→ bill.categorize；"我是不是被重复扣费了"→ bill.anomaly
 3. 省略上下文：如果用户说"确认"/"是的"/"继续"等，intent 填 "sys.confirm"，由编排器结合上下文处理（若上一轮无待确认任务则按 chitchat 处理）
 4. 拒绝办理与提问建议的区分：用户只是"问"信息(如"我该怎么办")不是指令时，选择最接近的查询类意图

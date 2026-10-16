@@ -167,10 +167,12 @@ export function ruleNLU(text: string): IntentResult | null {
   if (/卡(片)?(状态|情况)|我的卡/.test(t)) return mk("card.status", {}, text);
 
   // ---- 跨场景 ----
-  if (/生日/.test(t) && /锁|准备|鲜花|蛋糕|规划/.test(t)) {
+  if (/生日/.test(t) && /锁|预留|准备|鲜花|蛋糕|规划|礼物/.test(t)) {
+    // 复合诉求（生日+理财/转账等）交给 LLM 做复合分解，避免快通道只执行生日部分
+    if (/理财|基金|存款|转账|汇款|还款|缴费|订阅|赎回/.test(t.replace(/生日/g, ""))) return null;
     const personMatch = text.match(/(?:我爱?人|老婆|老公|妈妈|爸爸|朋友|同学|对象)(?:的)?生日/);
     const person = personMatch ? personMatch[0].replace("的生日", "").replace("生日", "") : "爱人";
-    const budgetMatch = t.match(/(?:锁定|准备|留)([0-9]+(?:\.[0-9]+)?)/);
+    const budgetMatch = t.match(/(?:锁定|预留|准备|留)([0-9]+(?:\.[0-9]+)?)/);
     const budgetCN = parseAmount(t.match(/锁[定]?([0-9一二三四五六七八九十百千万]+)(?:元|块)?/)?.[1] ?? "");
     const budget = budgetMatch ? Number(budgetMatch[1]) : (budgetCN ?? 1000);
     const date = text.match(/(\d{1,2}月\d{1,2}[号日]?)/)?.[1];
