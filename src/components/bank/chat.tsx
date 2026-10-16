@@ -196,56 +196,62 @@ export function Chat({
   );
 
   return (
-    <div className="flex flex-col h-full bg-zinc-100">
-      {/* 顶部：银行头部 */}
-      <div className="bg-gradient-to-r from-emerald-800 to-emerald-700 text-white px-4 pt-3 pb-4 shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center">
-              <Landmark className="h-4.5 w-4.5 h-4 w-4" />
+    <div className="flex flex-col h-full bg-[#1C1915]">
+      {/* 顶部：银行头部（深黑金） */}
+      <div className="relative bg-[#12100D] text-white px-5 pt-4 pb-4 shrink-0 border-b-2 border-[#C9A84C]/60">
+        <div
+          className="absolute inset-0 opacity-60"
+          style={{ background: "radial-gradient(600px 120px at 20% 0%, rgba(201,168,76,0.22), transparent 70%)" }}
+        />
+        <div className="relative flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#C9A84C] to-[#8A6D2F] flex items-center justify-center shadow-lg shadow-black/40">
+              <Landmark className="h-5 w-5 text-[#12100D]" strokeWidth={2.2} />
             </div>
             <div>
-              <div className="text-[15px] font-semibold leading-tight">AegisBank 灵犀智银</div>
-              <div className="text-[10px] text-emerald-200/90 flex items-center gap-1">
-                <ShieldCheck className="h-2.5 w-2.5" /> 三级权限管控 · 全程审计
+              <div className="text-[17px] font-bold leading-tight">
+                AegisBank <span className="bg-gradient-to-r from-[#E7CE8C] to-[#C9A84C] bg-clip-text text-transparent">灵犀智银</span>
+              </div>
+              <div className="text-[11px] text-[#C9A84C]/90 flex items-center gap-1.5 mt-0.5">
+                <ShieldCheck className="h-3 w-3" /> 三级权限管控 · 全程审计 · 沙箱执行
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-1 text-[10px] text-emerald-100/80">
-            <Bell className="h-3.5 w-3.5" />
+          <div className="flex items-center gap-1.5 text-[11px] text-[#C9A84C]">
+            <Bell className="h-4 w-4" />
             {notices.length > 0 && (
-              <span className="bg-red-500 text-white rounded-full px-1.5 text-[9px]">{notices.length}</span>
+              <span className="bg-red-500 text-white rounded-full px-1.5 py-0.5 text-[10px] font-semibold">{notices.length}</span>
             )}
           </div>
         </div>
         {/* 资产条 */}
         {overview && (
-          <div className="mt-3 rounded-xl bg-white/10 backdrop-blur px-3 py-2.5 flex items-center justify-between">
+          <div className="relative mt-3.5 rounded-xl bg-white/[0.07] backdrop-blur border border-[#C9A84C]/30 px-4 py-3 flex items-center justify-between">
             <div>
-              <div className="text-[10px] text-emerald-100/70">总资产（储蓄卡 ****{overview.cardNo}）</div>
-              <div className="text-[20px] font-bold tracking-tight">
+              <div className="text-[11px] text-[#A39B87]">总资产（储蓄卡 ****{overview.cardNo}）</div>
+              <div className="text-[24px] font-bold tracking-tight text-[#F2EBDB] tabular-nums">
                 ¥{overview.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-[10px] text-emerald-100/70 flex items-center gap-1 justify-end">
-                <Wallet className="h-2.5 w-2.5" /> 理财
+            <div className="text-right pl-5 border-l border-[#C9A84C]/25">
+              <div className="text-[12px] text-[#A39B87] flex items-center gap-1.5 justify-end">
+                <Wallet className="h-3 w-3" /> 理财持仓
               </div>
-              <div className="text-[14px] font-semibold">¥{overview.finance.toLocaleString()}</div>
+              <div className="text-[16px] font-semibold text-[#E7CE8C] tabular-nums">¥{overview.finance.toLocaleString()}</div>
             </div>
           </div>
         )}
       </div>
 
       {/* 快捷指令 */}
-      <div className="bg-white border-b border-zinc-100 px-3 py-2 shrink-0 overflow-x-auto">
-        <div className="flex gap-2 w-max">
+      <div className="bg-[#26211A] border-b border-[#C9A84C]/25 px-4 py-2.5 shrink-0 overflow-x-auto">
+        <div className="flex gap-2.5 w-max">
           {QUICK_CMDS.map((q) => (
             <button
               key={q.label}
               onClick={() => send(q.text)}
               disabled={busy}
-              className="text-[11px] px-2.5 py-1 rounded-full border border-emerald-200 text-emerald-800 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 whitespace-nowrap transition-colors"
+              className="text-[13px] px-4 py-2 rounded-full border border-[#C9A84C]/45 text-[#E7CE8C] bg-[#C9A84C]/10 hover:bg-[#C9A84C]/25 hover:border-[#C9A84C] disabled:opacity-40 whitespace-nowrap transition-colors font-medium"
             >
               {q.label}
             </button>
@@ -254,12 +260,12 @@ export function Chat({
       </div>
 
       {/* 消息区 */}
-      <div className="flex-1 overflow-y-auto px-3 py-3">
+      <div className="flex-1 overflow-y-auto px-5 py-4">
         {messages.length === 0 && (
-          <div className="text-center py-8">
-            <Sparkles className="h-8 w-8 text-emerald-300 mx-auto mb-2" />
-            <div className="text-[13px] text-zinc-500">您好，我是您的银行智能助手</div>
-            <div className="text-[11px] text-zinc-400 mt-1">试试「查余额」「识别订阅」「转100给室友」</div>
+          <div className="text-center py-12">
+            <Sparkles className="h-10 w-10 text-[#C9A84C] mx-auto mb-3" />
+            <div className="text-[19px] text-[#EDE6D6] font-medium">您好，我是您的银行智能助手</div>
+            <div className="text-[14.5px] text-[#A39B87] mt-2">试试「查余额」「识别订阅」「转100给室友」</div>
           </div>
         )}
         {messages.map((m) => (
@@ -267,11 +273,11 @@ export function Chat({
         ))}
         {busy && (
           <div className="flex justify-start mb-3">
-            <div className="rounded-2xl rounded-bl-md bg-white border border-zinc-200 px-4 py-3 shadow-sm">
-              <div className="flex gap-1">
-                <span className="w-1.5 h-1.5 bg-zinc-300 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                <span className="w-1.5 h-1.5 bg-zinc-300 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                <span className="w-1.5 h-1.5 bg-zinc-300 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+            <div className="rounded-2xl rounded-bl-md bg-[#2A251C] border border-[#C9A84C]/40 px-5 py-3.5">
+              <div className="flex gap-1.5">
+                <span className="w-2 h-2 bg-[#C9A84C]/60 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="w-2 h-2 bg-[#C9A84C]/60 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="w-2 h-2 bg-[#C9A84C]/60 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
               </div>
             </div>
           </div>
@@ -280,8 +286,8 @@ export function Chat({
       </div>
 
       {/* 输入区 */}
-      <div className="bg-white border-t border-zinc-200 px-3 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] shrink-0">
-        <div className="flex gap-2">
+      <div className="bg-[#26211A] border-t border-[#C9A84C]/30 px-4 py-3.5 pb-[max(0.8rem,env(safe-area-inset-bottom))] shrink-0">
+        <div className="flex gap-2.5">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -289,21 +295,21 @@ export function Chat({
               if (e.key === "Enter" && !e.nativeEvent.isComposing) send(input);
             }}
             placeholder="输入银行业务指令，如：转100给室友"
-            className="flex-1 h-10 rounded-full bg-zinc-100 border-zinc-200 focus-visible:ring-emerald-500"
+            className="flex-1 h-[52px] rounded-full bg-[#2A251C] border-[#C9A84C]/70 text-[16px] text-[#F2EBDB] placeholder:text-[#8F8878] focus-visible:ring-[#C9A84C] focus-visible:border-[#C9A84C] px-5"
             disabled={busy}
           />
           <Button
             size="icon"
-            className="h-10 w-10 rounded-full bg-emerald-700 hover:bg-emerald-800 shrink-0"
+            className="h-12 w-12 rounded-full bg-gradient-to-br from-[#C9A84C] to-[#8A6D2F] hover:from-[#D9B85C] hover:to-[#9A7A35] shrink-0 shadow-md"
             onClick={() => send(input)}
             disabled={busy || !input.trim()}
           >
-            <Send className="h-4 w-4" />
+            <Send className="h-5 w-5" />
           </Button>
         </div>
         {sms && (
-          <div className="mt-1.5 text-[10px] text-zinc-400 text-center">
-            💬 模拟手机已收到短信验证码：<span className="font-mono font-semibold text-amber-600">{sms.code}</span>（见右侧/下方"模拟手机"面板）
+          <div className="mt-2.5 text-[13px] text-[#A39B87] text-center">
+            💬 模拟手机已收到短信验证码：<span className="font-mono font-bold text-[#E7CE8C] text-[15px] tracking-wider">{sms.code}</span>（见右侧「模拟手机」面板）
           </div>
         )}
       </div>
