@@ -1,0 +1,248 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============ 用户与账户 ============
+
+model User {
+  id           String   @id @default(cuid())
+  phone        String   @unique
+  name         String
+  avatarEmoji  String   @default("🙂")
+  // 登录密码（演示环境明文模拟，仅用于"密码修改"场景演示）
+  loginPass    String   @default("123456")
+  // 风险测评等级: 1保守 2稳健 3平衡 4成长 5进取 (0=未测评)
+  riskLevel    Int      @default(0)
+  // 异常熔断状态
+  status       String   @default("ACTIVE") // ACTIVE | LOCKED
+  lockUntil    DateTime?
+  failCount    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  accounts     Account[]
+  cards        Card[]
+  holdings     Holding[]
+  transactions Transaction[]
+  auditLogs    AuditLog[]
+  sessions     ChatSession[]
+  scheduledTasks ScheduledTask[]
+  messages     NoticeMessage[]
+}
+
+model Account {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  accountNo   String   @unique // 卡号
+  type        String   @default("DEBIT") // DEBIT 活期 | FIXED 定期锁定
+  balance     Float    @default(0)
+  lockedAmt   Float    @default(0) // 场景联动锁定金额
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// 收款人（通讯录）
+model Payee {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  phone     String?
+  remark    String?  // 备注，如 "妈妈" "室友"
+  bank      String   @default("微众银行")
+  accountNo String
+  frequent  Int      @default(0) // 常用度
+  createdAt DateTime @default(now())
+  @@unique([userId, accountNo])
+}
+
+// ============ 交易流水 ============
+
+model Transaction {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  accountId   String
+  // TRANSFER_OUT 转出 | TRANSFER_IN 转入 | PURCHASE 消费 | SUBSCRIPTION 订阅扣费 | FINANCE_BUY 理财申购 | FINANCE_SELL 理财赎回 | CARD_REPAY 还款 | LOCK 资金锁定 | SALARY 工资
+  type        String
+  amount      Float    // 正数，符号由 type 决定
+  direction   String   @default("OUT") // IN | OUT
+  // 分类: 餐饮/购物/交通/娱乐/订阅/居住/医疗/教育/转账/理财/工资/退款
+  category    String   @default("其他")
+  merchant    String   // 商户/对方
+  counterparty String? // 对方账户
+  remark      String?
+  status      String   @default("SUCCESS") // SUCCESS | PENDING | FAILED | SCHEDULED
+  occurredAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  @@index([userId, occurredAt])
+}
+
+// ============ 理财 ============
+
+model FinanceProduct {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  type        String   // CASHPLUS 活期 | FIXED 定期 | FUND 基金 | INSURANCE 保险
+  riskLevel   Int      // 1-5, R1保守 R2稳健 R3平衡 R4成长 R5进取
+  minAmount   Float    @default(1)
+  expectedRet Float    // 预期年化 %
+  lockDays    Int      @default(0)
+  remainQuota Float?   // 剩余额度（售罄感）
+  tags        String   @default("") // 逗号分隔标签
+  desc        String   @default("")
+  active      Boolean  @default(true)
+  holdings    Holding[]
+}
+
+model Holding {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  productId   String
+  product     FinanceProduct @relation(fields: [productId], references: [id])
+  amount      Float
+  confirmedAt DateTime @default(now())
+  status      String   @default("HELD") // HELD | REDEEMED
+  redeemable  DateTime? // 可赎回时间
+}
+
+// ============ 卡片 ============
+
+model Card {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  cardNo      String   @unique
+  type        String   @default("DEBIT") // DEBIT 储蓄卡 | VIRTUAL 虚拟卡 | CREDIT 信用
+  label       String   @default("主力卡")
+  status      String   @default("ACTIVE") // ACTIVE | LOST 挂失 | FROZEN 冻结 | PENDING 申请中
+  limitDay    Float    @default(5000) // 单日交易限额
+  limitOnline Boolean  @default(true) // 线上交易开关
+  limitAbroad Boolean  @default(false) // 境外交易开关
+  quota       Float?   // 信用额度（信用/虚拟卡）
+  cvv         String   @default("888")
+  expiry      String   @default("09/29")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ============ 订阅/代扣 ============
+
+model Subscription {
+  id          String   @id @default(cuid())
+  userId      String
+  merchant    String   // 商户名
+  category    String   // 视频会员/音乐/云存储/外卖/健身...
+  amount      Float
+  cycle       String   @default("MONTHLY") // MONTHLY | YEARLY | WEEKLY
+  nextCharge  DateTime // 下次扣费时间
+  active      Boolean  @default(true)
+  autoRenew   Boolean  @default(true)
+  detected    Boolean  @default(false) // 是否已被Agent识别
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ============ Agent 核心表 ============
+
+// 对话会话
+model ChatSession {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String   @default("新对话")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  messages  ChatMessage[]
+  tasks     AgentTask[]
+}
+
+// 对话消息（含Agent的中间步骤，用于展示决策链路）
+model ChatMessage {
+  id        String   @id @default(cuid())
+  sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id])
+  role      String   // user | assistant | system_event
+  content   String   // 文本内容
+  // 结构化载荷: intent / dag / confirm_request / verify_request / card_render / security_alert
+  payload   String?  // JSON string
+  createdAt DateTime @default(now())
+}
+
+// 任务执行实例（DAG）
+model AgentTask {
+  id          String   @id @default(cuid())
+  sessionId   String
+  session     ChatSession @relation(fields: [sessionId], references: [id])
+  userId      String
+  goal        String   // 用户目标
+  dag         String   // JSON: {nodes:[{id,action,dependsOn[],status,result}]}
+  status      String   @default("RUNNING") // RUNNING | DONE | ABORTED | WAIT_CONFIRM | WAIT_VERIFY | INTERRUPTED
+  currentNode String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// 定时任务（定时转账/生日规划/续费提醒）
+model ScheduledTask {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  // SCHEDULED_TRANSFER | BIRTHDAY_PLAN | SUBSCRIPTION_REMIND
+  kind      String
+  payload   String   // JSON
+  runAt     DateTime
+  executed  Boolean  @default(false)
+  result    String?
+  createdAt DateTime @default(now())
+}
+
+// 站内通知（Agent主动触达）
+model NoticeMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  kind      String   // REMIND | ALERT | RESULT
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// ============ 安全审计（核心！） ============
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  sessionId   String?
+  // 意图识别 → 权限判定 → 确认/验证 → 工具执行 → 结果校验
+  stage       String   // INTENT | PERMISSION | CONFIRM | VERIFY | EXECUTE | VALIDATE | SECURITY | FUSE
+  action      String   // 具体动作 e.g. transfer.execute
+  riskLevel   String?  // GREEN | YELLOW | RED
+  decision    String   // ALLOW | DENY | PENDING | CONFIRMED | VERIFIED | BLOCKED
+  detail      String   // JSON: 输入、决策链路、执行结果
+  traceId     String   // 决策链路ID（串联一次请求的所有日志）
+  createdAt   DateTime @default(now())
+  @@index([userId, createdAt])
+  @@index([traceId])
+}
+
+// 强验证记录（短信验证码/人脸）
+model VerifyRecord {
+  id        String   @id @default(cuid())
+  userId    String
+  traceId   String
+  method    String   // SMS | FACE
+  code      String   // 演示验证码
+  target    String   // 操作摘要
+  expiredAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
