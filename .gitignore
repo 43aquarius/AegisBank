@@ -66,3 +66,6 @@ scripts/gican-auth.json
 scripts/*.png
 scripts/*.js
 scripts/*.html
+
+# QA intermediate screenshots
+scripts/qa/
